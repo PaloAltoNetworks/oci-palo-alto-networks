@@ -37,15 +37,6 @@ resource "oci_core_instance" "ha-vms" {
     ssh_authorized_keys = var.ssh_public_key
   }
 
-  # metadata = {
-  #   ssh_authorized_keys = var.ssh_public_key
-  #   user_data = base64encode(templatefile("scripts/cloud-init.sh",{
-  #     allow_upload_download=var.allow_upload_download   
-  #     template_name = var.template_name
-  #     template_version = var.template_version
-  #     shell = var.shell
-  #   }))
-  # }
 }
 
 resource "oci_core_vnic_attachment" "trust_vnic_attachment" {
@@ -67,7 +58,7 @@ resource "oci_core_vnic_attachment" "untrust_vnic_attachment" {
   count = 2
   create_vnic_details {
     subnet_id              = local.use_existing_network ? var.untrust_subnet_id : oci_core_subnet.untrust_subnet[0].id
-    assign_public_ip       = "false"
+    assign_public_ip       = "true"
     skip_source_dest_check = "true"
     nsg_ids                = [oci_core_network_security_group.nsg.id]
     display_name           = "Untrust"
@@ -75,21 +66,6 @@ resource "oci_core_vnic_attachment" "untrust_vnic_attachment" {
   instance_id = oci_core_instance.ha-vms[count.index].id
   depends_on = [
     oci_core_vnic_attachment.trust_vnic_attachment
-  ]
-}
-
-resource "oci_core_vnic_attachment" "ha2_vnic_attachment" {
-  count = 2
-  create_vnic_details {
-    subnet_id              = local.use_existing_network ? var.ha2_subnet_id : oci_core_subnet.ha2_subnet[0].id
-    assign_public_ip       = "false"
-    skip_source_dest_check = "true"
-    nsg_ids                = [oci_core_network_security_group.nsg.id]
-    display_name           = "HA2"
-  }
-  instance_id = oci_core_instance.ha-vms[count.index].id
-  depends_on = [
-    oci_core_vnic_attachment.untrust_vnic_attachment
   ]
 }
 
